@@ -5,7 +5,8 @@ import java.util.Date;
 
 public class Karyawan {
     Long karyawanId;
-    String nama;
+    String namaDepan;
+    String namaBelakang;
     String tempatTinggal;
     Date tanggalLahir;
     int jumlahCutiTersisa;
