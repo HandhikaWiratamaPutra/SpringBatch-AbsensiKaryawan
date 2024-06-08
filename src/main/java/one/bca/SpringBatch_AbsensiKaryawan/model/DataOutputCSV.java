@@ -1,14 +1,13 @@
 package one.bca.SpringBatch_AbsensiKaryawan.model;
 
-import java.time.Duration;
-import java.util.Date;
+import java.sql.Time;
 
-public class Karyawan {
+public class DataOutputCSV {
     Long karyawanId;
     String namaDepan;
     String namaBelakang;
-    String tempatTinggal;
-    Date tanggalLahir;
     int jumlahCutiTersisa;
     int jumlahCutiTelahDiambil;
+    Time totalDurasiLembur;
+    int totalKehadiran;
 }

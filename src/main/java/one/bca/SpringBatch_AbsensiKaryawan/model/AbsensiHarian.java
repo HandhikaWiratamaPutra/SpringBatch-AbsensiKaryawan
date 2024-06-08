@@ -4,12 +4,11 @@ import java.sql.Time;
 import java.time.Duration;
 import java.util.Date;
 
-public class Absensi {
+public class AbsensiHarian {
     Long absenId;
     Long karyawanId;
     Date tanggalAbsen;
     Time waktuClockIn;
     Time waktuClockOut;
-    Duration durationOverTime;
-    Boolean isValid;
+    Duration durasiLembur;
 }
