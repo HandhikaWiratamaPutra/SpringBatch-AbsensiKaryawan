@@ -9,7 +9,7 @@ import java.util.Map;
 public class PartitionerAbsensiOutput implements Partitioner {
     @Override
     public Map<String, ExecutionContext> partition(int gridSize) {
-        System.out.println("PartitionerAbsensiOutput started");
+//        System.out.println("PartitionerAbsensiOutput started");
         Map<String, ExecutionContext> result = new HashMap<>();
 
         int fromChar = 1;
@@ -22,12 +22,11 @@ public class PartitionerAbsensiOutput implements Partitioner {
             value.putString("fromChar", String.valueOf((char)('A'- 1 + fromChar)));
             value.putString("toChar", String.valueOf((char)('A'- 1 + toChar)));
             value.putString("fileName", "data/absensi_output" + i);
-            value.putString("headerWriter", "oke"+i);
             System.out.println("value partitioner ke-" + i + "= "+ value + " | fromChar = "+ fromChar + " | toChar = " + toChar);
             result.put("partition" + i, value);
             fromChar = toChar + 1;
         }
-        System.out.println("PartitionerAbsensiOutput ended");
+//        System.out.println("PartitionerAbsensiOutput ended");
         return result;
     }
 }

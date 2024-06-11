@@ -16,6 +16,7 @@ public class ReaderAbsensiOutputRowMapper implements RowMapper<AbsensiOutputCSV>
     @Override
     public AbsensiOutputCSV mapRow(ResultSet rs, int rowNum) throws SQLException {
         AbsensiOutputCSV absensiOutputCSV = new AbsensiOutputCSV();
+
         // find "k.karyawan_id" karena sudah di update AS "k.karyawan_id"
         absensiOutputCSV.setKaryawanId(rs.getLong("k.karyawan_id"));
         absensiOutputCSV.setNamaDepan(rs.getString("nama_depan"));
@@ -30,7 +31,7 @@ public class ReaderAbsensiOutputRowMapper implements RowMapper<AbsensiOutputCSV>
         if (totalDurasiLemburString != null) {
             // Parsing interval ke dalam format yang sesuai
             String[] parts = totalDurasiLemburString.split(" ");
-            System.out.println("parts : " + Arrays.toString(parts));
+//            System.out.println("parts : " + Arrays.toString(parts));
             long days = 0;
             long hours = 0;
             long minutes = 0;
@@ -52,7 +53,7 @@ public class ReaderAbsensiOutputRowMapper implements RowMapper<AbsensiOutputCSV>
             absensiOutputCSV.setTotalDurasiLembur(totalDurasiLembur);
         }
         absensiOutputCSV.setTotalKehadiran(rs.getInt("total_kehadiran"));
-        System.out.println("absensiOutputCSV : " + absensiOutputCSV.toString());
+//        System.out.println("absensiOutputCSV : " + absensiOutputCSV.toString());
         return absensiOutputCSV;
     }
 }
