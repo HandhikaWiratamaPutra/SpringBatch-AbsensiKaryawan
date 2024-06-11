@@ -22,11 +22,25 @@ public class JobController {
     @GetMapping("/start-job")
     public String startJob() {
         try {
+            Long currentMilis = System.currentTimeMillis();
             JobParameters jobParameters = new JobParametersBuilder()
-                    .addLong("time", System.currentTimeMillis())
+                    .addLong("time", currentMilis)
                     .toJobParameters();
             jobLauncher.run(batchConfiguration.jobStart(), jobParameters);
-            return "Job started successfully";
+            return "Job started with parameter :" + currentMilis;
+        } catch (Exception e) {
+            return "Job failed to start: " + e.getMessage();
+        }
+    }
+
+    @GetMapping("/start-job/{milisTime}")
+    public String startJob(@PathVariable("milisTime") Long milisTime) {
+        try {
+            JobParameters jobParameters = new JobParametersBuilder()
+                    .addLong("time", milisTime)
+                    .toJobParameters();
+            jobLauncher.run(batchConfiguration.jobStart(), jobParameters);
+            return "Job started with parameter :" + milisTime;
         } catch (Exception e) {
             return "Job failed to start: " + e.getMessage();
         }
