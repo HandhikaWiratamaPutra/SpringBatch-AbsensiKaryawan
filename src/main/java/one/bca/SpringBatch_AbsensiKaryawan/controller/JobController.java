@@ -25,7 +25,8 @@ public class JobController {
             JobParameters jobParameters = new JobParametersBuilder()
                     .addLong("time", System.currentTimeMillis())
                     .toJobParameters();
-            jobLauncher.run(batchConfiguration.jobStart(), jobParameters);
+            // jobLauncher.run(batchConfiguration.jobStart(), jobParameters);
+            jobLauncher.run(batchConfiguration.jobPengolahanAbsensiKaryawan(), jobParameters);
             return "Job started successfully";
         } catch (Exception e) {
             return "Job failed to start: " + e.getMessage();
