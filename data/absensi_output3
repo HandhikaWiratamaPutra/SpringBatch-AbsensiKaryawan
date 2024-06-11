@@ -1,0 +1,4 @@
+karyawan_id, nama_depan, nama_belakang, jumlah_cuti_tersisa, jumlah_cuti_telah_diambil, total_durasi_lembur, total_kehadiran
+2,Zoro,Smith,10,2,PT8H30M,21
+7,Robert,Taylor,11,1,PT10H,24
+10,Sophia,Wilson,1,11,PT5H15M,19

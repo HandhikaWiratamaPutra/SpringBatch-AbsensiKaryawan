@@ -1,0 +1,3 @@
+karyawan_id, nama_depan, nama_belakang, jumlah_cuti_tersisa, jumlah_cuti_telah_diambil, total_durasi_lembur, total_kehadiran
+3,Michael,Johnson,7,5,PT74H3M2S,22
+9,James,Miller,10,2,PT8H,22
