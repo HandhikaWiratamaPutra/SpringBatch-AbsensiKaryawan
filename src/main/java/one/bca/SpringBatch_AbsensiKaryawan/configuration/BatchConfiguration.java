@@ -1,5 +1,6 @@
 package one.bca.SpringBatch_AbsensiKaryawan.configuration;
 
+import one.bca.SpringBatch_AbsensiKaryawan.listener.CustomCreateOutputCSVSkipListener;
 import one.bca.SpringBatch_AbsensiKaryawan.mapper.ReaderAbsensiOutputRowMapper;
 import one.bca.SpringBatch_AbsensiKaryawan.model.AbsensiOutputCSV;
 import one.bca.SpringBatch_AbsensiKaryawan.partitionoer.PartitionerAbsensiOutput;
@@ -14,6 +15,7 @@ import org.springframework.batch.core.scope.context.StepContext;
 import org.springframework.batch.core.scope.context.StepSynchronizationManager;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ExecutionContext;
+import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JdbcPagingItemReader;
 import org.springframework.batch.item.database.Order;
@@ -43,7 +45,6 @@ public class BatchConfiguration {
     String lastMonthFirstDayString;
     public static String[] namesofExtractorAbsensiOutputCSV = new String[] { "karyawanId", "namaDepan", "namaBelakang", "jumlahCutiTersisa",
             "jumlahCutiTelahDiambil", "totalDurasiLembur", "totalKehadiran" };
-    private List<String> checkHeader = new ArrayList<>();
 
     public BatchConfiguration(DataSourceTransactionManager transactionManager, JobRepository jobRepository, RowMapper<AbsensiOutputCSV> readerAbsensiOutputRowMapper) {
         this.transactionManager = transactionManager;
@@ -96,9 +97,32 @@ public class BatchConfiguration {
 
     public Step stepCreateOutputCSVAbsensi() throws Exception {
         return new StepBuilder("stepCreateOutputCSVAbsensi", jobRepository)
-                .<AbsensiOutputCSV, AbsensiOutputCSV>chunk(3, transactionManager)
+                .<AbsensiOutputCSV, AbsensiOutputCSV>chunk(2, transactionManager)
                 .reader(readBahanAbsensiOutputCSV())
-                .writer(writeAbsensiOutputCSV(null, null))
+                .processor(new ItemProcessor<AbsensiOutputCSV, AbsensiOutputCSV>() {
+                    @Override
+                    public AbsensiOutputCSV process(AbsensiOutputCSV absensiOutputCSV) throws Exception {
+
+//                        System.out.println("absensiOutputCSV : " + absensiOutputCSV.toString());
+                        if (absensiOutputCSV.getKaryawanId().equals(4L) ||
+                                absensiOutputCSV.getKaryawanId().equals(1L) ||
+                                absensiOutputCSV.getKaryawanId().equals(6L) ||
+                                absensiOutputCSV.getKaryawanId().equals(8L)) {
+                            try {
+                                throw new Exception("Pengkondisian Error di Processor");
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                        return absensiOutputCSV;
+                    }
+                })
+                .writer(writeAbsensiOutputCSV(null))
+                .faultTolerant()
+                .skip(Exception.class)
+//                .skipLimit(1) // bikin gagal
+                .skipLimit(2)   // tetap sukses karena .skipLimit ini per thread dari partitionernya
+                .listener(new CustomCreateOutputCSVSkipListener())
                 .build();
     }
 
@@ -110,18 +134,18 @@ public class BatchConfiguration {
                 .dataSource(transactionManager.getDataSource())
                 .queryProvider(queryProviderOfReadBahanAbsensiOutputCSV())
                 .rowMapper(new ReaderAbsensiOutputRowMapper())
-                .pageSize(3) // Set page size as needed
+                .pageSize(2) // Set page size as needed
                 .name("pagingItemReader")
                 .build();
     }
 
     public PagingQueryProvider queryProviderOfReadBahanAbsensiOutputCSV() throws Exception {
-        System.out.println("querry provider started by-" + Thread.currentThread().getName());
+//        System.out.println("querry provider started by-" + Thread.currentThread().getName());
         StepContext stepContext = StepSynchronizationManager.getContext();
         ExecutionContext executionContext = stepContext.getStepExecution().getExecutionContext();
         String fromChar = executionContext.getString("fromChar");
         String toChar = executionContext.getString("toChar");
-        System.out.println("fromChar = " + fromChar + " | toChar = " + toChar);
+//        System.out.println("fromChar = " + fromChar + " | toChar = " + toChar);
 
         PostgresPagingQueryProvider factory = new PostgresPagingQueryProvider();
 
@@ -139,23 +163,17 @@ public class BatchConfiguration {
         sortKeys.put("k.karyawan_id", Order.ASCENDING);
         factory.setSortKeys(sortKeys);
         factory.init(Objects.requireNonNull(transactionManager.getDataSource()));
-        System.out.println("querry provider ended");
+//        System.out.println("querry provider ended");
         return factory;
     }
 
     @Bean
     @StepScope
-    public ItemWriter<AbsensiOutputCSV> writeAbsensiOutputCSV(@Value("#{stepExecutionContext['fileName']}") String fileName,
-                                                              @Value("#{stepExecutionContext['headerWriter']}") String headerWriter){
+    public ItemWriter<AbsensiOutputCSV> writeAbsensiOutputCSV(@Value("#{stepExecutionContext['fileName']}") String fileName){
 
-        System.out.println("ItemWriter started");
-//        StepContext stepContext = StepSynchronizationManager.getContext();
-//        ExecutionContext executionContext = stepContext.getStepExecution().getExecutionContext();
-//        String threadCount = executionContext.getString("threadCount");
+//        System.out.println("ItemWriter started");
 
         FlatFileItemWriter<AbsensiOutputCSV> itemWriter = new FlatFileItemWriter<>();
-
-//        itemWriter.setResource(new FileSystemResource("data/absensi_output" + threadCount + ".csv"));
         itemWriter.setResource(new FileSystemResource(fileName));
 
         DelimitedLineAggregator<AbsensiOutputCSV> aggregator = new DelimitedLineAggregator<AbsensiOutputCSV>();
@@ -163,16 +181,14 @@ public class BatchConfiguration {
 
         BeanWrapperFieldExtractor<AbsensiOutputCSV> fieldExtractor = new BeanWrapperFieldExtractor<AbsensiOutputCSV>();
         fieldExtractor.setNames(namesofExtractorAbsensiOutputCSV);
+
         aggregator.setFieldExtractor(fieldExtractor);
+        itemWriter.setLineAggregator(aggregator);
 
         itemWriter.setHeaderCallback(writer -> {
-            if(!checkHeader.contains(headerWriter)){
-                checkHeader.add(headerWriter);
                 writer.write("karyawan_id, nama_depan, nama_belakang, jumlah_cuti_tersisa, " +
                         "jumlah_cuti_telah_diambil, total_durasi_lembur, total_kehadiran");
-            }
         });
-        itemWriter.setLineAggregator(aggregator);
         itemWriter.open(new ExecutionContext());
         return itemWriter;
     }
