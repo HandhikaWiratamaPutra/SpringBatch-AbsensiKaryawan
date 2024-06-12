@@ -15,9 +15,9 @@ public class AbsensiHarianMapper implements FieldSetMapper<AbsensiHarian> {
         absensiHarian.setAbsenId(fieldSet.readLong("absen_id"));
         absensiHarian.setKaryawanId(fieldSet.readLong("karyawan_id"));
         absensiHarian.setTanggalAbsen(fieldSet.readDate("tanggal_absen"));
-        absensiHarian.setWaktuClockIn((Time) fieldSet.readDate("waktu_cloc_in"));
-        absensiHarian.setWaktuClockOut((Time) fieldSet.readDate("waktu_clockout"));
-        absensiHarian.setDurasiLembur((Time) fieldSet.readDate("durasi_lembur"));
+        absensiHarian.setWaktuClockIn(Time.valueOf(fieldSet.readString("waktu_clockin")));
+        absensiHarian.setWaktuClockOut(Time.valueOf(fieldSet.readString("waktu_clockout")));
+        absensiHarian.setDurasiLembur(Time.valueOf(fieldSet.readString("durasi_lembur")));
         return absensiHarian;
     }
 }

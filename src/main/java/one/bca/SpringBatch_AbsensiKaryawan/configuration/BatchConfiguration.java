@@ -50,9 +50,9 @@ import java.util.*;
 @SpringBootApplication
 @Configuration
 public class BatchConfiguration {
-    public static String[] tokens = new String[] {"absenId", "karyawanId", "tanggalAbsen", "waktuClockIn", "waktuClockOut", "durasiLembur"};
+    public static String[] tokens = new String[] {"absen_id", "karyawan_id", "tanggal_absen", "waktu_clockin", "waktu_clockout", "durasi_lembur"};
     public static String INSERT_ABSENSI_HARIAN_SQL = "insert into "
-            + "ABSENSI_HARIAN(absenId, karyawanId, tanggalAbsen, waktuClockIn, waktuClockOut, durasiLembur) "
+            + "ABSENSI_HARIAN(absen_id, karyawan_id, tanggal_absen, waktu_clockin, waktu_clockout, durasi_lembur) "
             + "values(?,?,?,?,?,?)";
     private final DataSourceTransactionManager transactionManager;
     private final JobRepository jobRepository;
