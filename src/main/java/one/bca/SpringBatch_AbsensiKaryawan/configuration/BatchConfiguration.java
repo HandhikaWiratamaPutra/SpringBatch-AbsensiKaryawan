@@ -1,7 +1,9 @@
 package one.bca.SpringBatch_AbsensiKaryawan.configuration;
 
 import one.bca.SpringBatch_AbsensiKaryawan.listener.CustomCreateOutputCSVSkipListener;
+import one.bca.SpringBatch_AbsensiKaryawan.mapper.AbsensiHarianMapper;
 import one.bca.SpringBatch_AbsensiKaryawan.mapper.ReaderAbsensiOutputRowMapper;
+import one.bca.SpringBatch_AbsensiKaryawan.model.AbsensiHarian;
 import one.bca.SpringBatch_AbsensiKaryawan.model.AbsensiOutputCSV;
 import one.bca.SpringBatch_AbsensiKaryawan.partitionoer.PartitionerAbsensiOutput;
 import org.springframework.batch.core.*;
@@ -15,31 +17,42 @@ import org.springframework.batch.core.scope.context.StepContext;
 import org.springframework.batch.core.scope.context.StepSynchronizationManager;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ExecutionContext;
-import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
-import org.springframework.batch.item.database.JdbcPagingItemReader;
-import org.springframework.batch.item.database.Order;
-import org.springframework.batch.item.database.PagingQueryProvider;
+import org.springframework.batch.item.data.RepositoryItemWriter;
+import org.springframework.batch.item.database.*;
+import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
 import org.springframework.batch.item.database.support.PostgresPagingQueryProvider;
 import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
+import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
+import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
+import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
 import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
+import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
+import javax.sql.DataSource;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Configuration
 public class BatchConfiguration {
+    public static String[] tokens = new String[] {"absen_id", "karyawan_id", "tanggal_absen", "waktu_clockin", "waktu_clockout", "durasi_lembur"};
+    public static String INSERT_ABSENSI_HARIAN_SQL = "insert into "
+            + "ABSENSI_HARIAN(absen_id, karyawan_id, tanggal_absen, waktu_clockin, waktu_clockout, durasi_lembur) "
+            + "values(?,?,?,?,?,?)";
     private final DataSourceTransactionManager transactionManager;
     private final JobRepository jobRepository;
     String lastMonthFirstDayString;
@@ -72,15 +85,53 @@ public class BatchConfiguration {
     @Bean
     public Job jobStart() throws Exception {
         return new JobBuilder("jobPengolahanAbsensiKaryawan", jobRepository)
-                .start(masterCreateOutputCSVAbsensi())
+                .start(step1(jobRepository, transactionManager))
+//                .start(masterCreateOutputCSVAbsensi())
                 .build();
     }
 
+    @Bean
+    public ItemReader<AbsensiHarian> itemReader() {
+        FlatFileItemReader<AbsensiHarian> itemReader = new FlatFileItemReader<>();
+        itemReader.setLinesToSkip(1);
+        itemReader.setResource(new FileSystemResource("data/absensi.csv"));
+
+        DelimitedLineTokenizer tokenizer = new DelimitedLineTokenizer();
+        tokenizer.setNames(tokens);
+//        tokenizer.setDelimiter(";");
+
+        DefaultLineMapper<AbsensiHarian> lineMapper = new DefaultLineMapper<>();
+        lineMapper.setLineTokenizer(tokenizer);
+        lineMapper.setFieldSetMapper(new AbsensiHarianMapper());
+
+        itemReader.setLineMapper(lineMapper);
+        itemReader.open(new ExecutionContext());
+        return itemReader;
+    }
+
+    @Bean
     public Step masterCreateOutputCSVAbsensi() throws Exception {
         return new StepBuilder("masterCreateOutputCSVAbsensi", jobRepository)
                 .partitioner("partitionerOutputCSVAbsensi", partitionerAbsensiOutputCSV())
                 .partitionHandler(partitionAbsensiOutputCSVHandler())
                 .build();
+    }
+
+    @Bean
+    public ItemWriter<AbsensiHarian> itemWriter(DataSource dataSource) {
+        return new JdbcBatchItemWriterBuilder<AbsensiHarian>()
+                .dataSource(dataSource)
+                .sql(INSERT_ABSENSI_HARIAN_SQL)
+                .itemPreparedStatementSetter(new AbsensiHarianPreparedStatementSetter())
+                .build();
+    }
+
+    @Bean
+    public Step step1(JobRepository jobRepository, DataSourceTransactionManager transactionManager) throws Exception {
+        return new StepBuilder("step1", jobRepository)
+                .<AbsensiHarian, AbsensiHarian>chunk(3, transactionManager)
+                .reader(itemReader())
+                .writer(itemWriter(transactionManager.getDataSource())).build();
     }
 
     @Bean
