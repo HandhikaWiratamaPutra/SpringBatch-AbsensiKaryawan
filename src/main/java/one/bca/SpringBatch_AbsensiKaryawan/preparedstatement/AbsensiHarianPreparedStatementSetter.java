@@ -1,4 +1,4 @@
-package one.bca.SpringBatch_AbsensiKaryawan.configuration;
+package one.bca.SpringBatch_AbsensiKaryawan.preparedstatement;
 
 import one.bca.SpringBatch_AbsensiKaryawan.model.AbsensiHarian;
 import org.springframework.batch.item.database.ItemPreparedStatementSetter;
