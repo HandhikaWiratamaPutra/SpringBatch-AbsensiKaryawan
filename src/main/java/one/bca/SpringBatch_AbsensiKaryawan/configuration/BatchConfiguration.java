@@ -46,7 +46,7 @@ public class BatchConfiguration {
     public static String[] namesofExtractorAbsensiOutputCSV = new String[] { "karyawanId", "namaDepan", "namaBelakang", "jumlahCutiTersisa",
             "jumlahCutiTelahDiambil", "totalDurasiLembur", "totalKehadiran" };
 
-    public BatchConfiguration(DataSourceTransactionManager transactionManager, JobRepository jobRepository, RowMapper<AbsensiOutputCSV> readerAbsensiOutputRowMapper) {
+    public BatchConfiguration(DataSourceTransactionManager transactionManager, JobRepository jobRepository) {
         this.transactionManager = transactionManager;
         this.jobRepository = jobRepository;
 
@@ -68,6 +68,8 @@ public class BatchConfiguration {
         System.out.println("Last month's first day [dummy] : " + lastMonthFirstDayString);
     }
 
+    //uncomment @Bean jika mau test. jika mau hit pakai rest api, comment @Bean agar tidak jalan otomatis
+    @Bean
     public Job jobStart() throws Exception {
         return new JobBuilder("jobPengolahanAbsensiKaryawan", jobRepository)
                 .start(masterCreateOutputCSVAbsensi())
