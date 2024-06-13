@@ -3,9 +3,12 @@ package one.bca.SpringBatch_AbsensiKaryawan.configuration;
 import one.bca.SpringBatch_AbsensiKaryawan.listener.CustomCreateOutputCSVSkipListener;
 import one.bca.SpringBatch_AbsensiKaryawan.mapper.AbsensiHarianMapper;
 import one.bca.SpringBatch_AbsensiKaryawan.mapper.ReaderAbsensiOutputRowMapper;
+import one.bca.SpringBatch_AbsensiKaryawan.mapper.ReaderBahanAbsensiBulananRowMapper;
+import one.bca.SpringBatch_AbsensiKaryawan.model.AbsensiBulanan;
 import one.bca.SpringBatch_AbsensiKaryawan.model.AbsensiHarian;
 import one.bca.SpringBatch_AbsensiKaryawan.model.AbsensiOutputCSV;
 import one.bca.SpringBatch_AbsensiKaryawan.partitionoer.PartitionerAbsensiOutput;
+import one.bca.SpringBatch_AbsensiKaryawan.preparedstatement.AbsensiBulananPreparedStatementSetter;
 import one.bca.SpringBatch_AbsensiKaryawan.preparedstatement.AbsensiHarianPreparedStatementSetter;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.configuration.annotation.StepScope;
@@ -38,7 +41,7 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
-import javax.sql.DataSource;
+import java.sql.Date;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -47,9 +50,14 @@ import java.util.*;
 public class BatchConfiguration {
     //variable step 1
     public static String[] tokens = new String[] {"absen_id", "karyawan_id", "tanggal_absen", "waktu_clockin", "waktu_clockout", "durasi_lembur"};
-    public static String INSERT_ABSENSI_HARIAN_SQL = "insert into "
+    public static String INSERT_ABSENSI_HARIAN_SQL = "INSERT INTO "
             + "ABSENSI_HARIAN(absen_id, karyawan_id, tanggal_absen, waktu_clockin, waktu_clockout, durasi_lembur) "
-            + "values(?,?,?,?,?,?)";
+            + "VALUES(?,?,?,?,?,?)";
+
+    //variable step 2
+    public static String INSERT_ABSENSI_BULANAN_SQL = "INSERT INTO "
+            + "ABSENSI_BULANAN(karyawan_id, bulan_dan_tahun_absensi, total_durasi_lembur, total_kehadiran) "
+            + "VALUES(?,?,?,?)";
 
     //variable step 3
     public static String[] namesofExtractorAbsensiOutputCSV = new String[] { "karyawanId", "namaDepan", "namaBelakang", "jumlahCutiTersisa",
@@ -60,6 +68,7 @@ public class BatchConfiguration {
     private final DataSourceTransactionManager transactionManager;
     private final JobRepository jobRepository;
     String lastMonthFirstDayString;
+    Date lastMonthFirstDayDate;
 
     public BatchConfiguration(DataSourceTransactionManager transactionManager, JobRepository jobRepository) {
         this.transactionManager = transactionManager;
@@ -75,30 +84,44 @@ public class BatchConfiguration {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         lastMonthFirstDayString = lastMonthFirstDay.format(formatter);
 
+            // Convert LocalDate to java.sql.Date
+        lastMonthFirstDayDate = Date.valueOf(lastMonthFirstDay);
+
         // Output the string representation of the last month's first day
-        System.out.println("Last month's first day         : " + lastMonthFirstDayString);
+        System.out.println("Last month's first day          : " + lastMonthFirstDayString);
+        System.out.println("Last month's first date         : " + lastMonthFirstDayDate);
 
         //dummy date ke 2024-06-01
         lastMonthFirstDayString = "2024-06-01";
-        System.out.println("Last month's first day [dummy] : " + lastMonthFirstDayString);
+
+            // Parse the string to LocalDate
+        LocalDate dummyDate = LocalDate.parse(lastMonthFirstDayString, DateTimeFormatter.ISO_DATE);
+
+            // Convert LocalDate to java.sql.Date
+        lastMonthFirstDayDate = Date.valueOf(dummyDate);
+
+        System.out.println("Last month's first day  [dummy] : " + lastMonthFirstDayString);
+        System.out.println("Last month's first date [dummy] : " + lastMonthFirstDayDate);
     }
 
     //uncomment @Bean jika mau test. jika mau hit pakai rest api, comment @Bean agar tidak jalan otomatis
 //    @Bean
     public Job jobStart() throws Exception {
         return new JobBuilder("jobPengolahanAbsensiKaryawan", jobRepository)
-                .start(step1(jobRepository, transactionManager))
-//                .start(masterCreateOutputCSVAbsensi())
+                .start(step1())
+                .next(stepAbsensiHarianToBulanan())
+                .next(masterCreateOutputCSVAbsensi())
                 .build();
     }
 
     //step 1 start here to read CSV and write to db absensi harian
+    //uncomment @Bean jika mau test. jika mau hit pakai rest api, comment @Bean agar tidak jalan otomatis
 //    @Bean
-    public Step step1(JobRepository jobRepository, DataSourceTransactionManager transactionManager) throws Exception {
+    public Step step1() throws Exception {
         return new StepBuilder("step1", jobRepository)
                 .<AbsensiHarian, AbsensiHarian>chunk(3, transactionManager)
                 .reader(itemReader())
-                .writer(itemWriter(transactionManager.getDataSource())).build();
+                .writer(itemWriter()).build();
     }
 
     @Bean
@@ -120,9 +143,9 @@ public class BatchConfiguration {
     }
 
     @Bean
-    public ItemWriter<AbsensiHarian> itemWriter(DataSource dataSource) {
+    public ItemWriter<AbsensiHarian> itemWriter() {
         return new JdbcBatchItemWriterBuilder<AbsensiHarian>()
-                .dataSource(dataSource)
+                .dataSource(Objects.requireNonNull(transactionManager.getDataSource()))
                 .sql(INSERT_ABSENSI_HARIAN_SQL)
                 .itemPreparedStatementSetter(new AbsensiHarianPreparedStatementSetter())
                 .build();
@@ -130,10 +153,70 @@ public class BatchConfiguration {
 
     //step 1 ended here
     //step 2 start here to read table absensi_harian and write to table absensi_bulanan
-    //step 2 ended here
-    //step 3 start here to read table absensi_bulanan and table karyawan and write to Abensi Output CSV
+    //uncomment @Bean jika mau test. jika mau hit pakai rest api, comment @Bean agar tidak jalan otomatis
+//    @Bean
+    public Step stepAbsensiHarianToBulanan() throws Exception {
+        return new StepBuilder("stepAbsensiHarianToBulanan", jobRepository)
+                .<AbsensiBulanan, AbsensiBulanan>chunk(7, transactionManager)
+                .reader(readBahanAbsensiBulanan())
+                .processor(itemProcessorAbsensiBulanan())
+                .writer(itemWriterAbsensiBulanan())
+                .build();
+    }
 
     @Bean
+    public JdbcPagingItemReader<AbsensiBulanan> readBahanAbsensiBulanan() throws Exception {
+        return new JdbcPagingItemReaderBuilder<AbsensiBulanan>()
+                .dataSource(Objects.requireNonNull(transactionManager.getDataSource()))
+                .queryProvider(queryProviderOfReadBahanAbsensiHarianDanBulanan())
+                .rowMapper(new ReaderBahanAbsensiBulananRowMapper())
+                .pageSize(2) // Set page size as needed
+                .name("pagingItemReader")
+                .saveState(false)
+                .build();
+    }
+
+    public PagingQueryProvider queryProviderOfReadBahanAbsensiHarianDanBulanan() throws Exception {
+//        System.out.println("queryProviderOfReadBahanAbsensiHarianDanBulanan started");
+        PostgresPagingQueryProvider factory = new PostgresPagingQueryProvider();
+
+        factory.setSelectClause("karyawan_id, COUNT(1) AS total_kehadiran, SUM(EXTRACT(EPOCH FROM durasi_lembur)) AS total_durasi_lembur ");
+        factory.setFromClause("FROM absensi_harian ");
+        factory.setWhereClause("WHERE waktu_clockin IS NOT NULL AND waktu_clockout IS NOT NULL ");
+        factory.setGroupClause("GROUP BY karyawan_id ");
+
+        Map<String, Order> sortKeys = new HashMap<>();
+        sortKeys.put("karyawan_id", Order.ASCENDING);
+        factory.setSortKeys(sortKeys);
+        factory.init(Objects.requireNonNull(transactionManager.getDataSource()));
+//        System.out.println("querry provider ended");
+        return factory;
+    }
+
+    @Bean
+    public ItemProcessor<AbsensiBulanan, AbsensiBulanan> itemProcessorAbsensiBulanan() {
+        return new ItemProcessor<AbsensiBulanan, AbsensiBulanan>() {
+            @Override
+            public AbsensiBulanan process(AbsensiBulanan item) throws Exception {
+                item.setBulanDanTahunAbsensi(lastMonthFirstDayDate);
+                return item;
+            }
+        };
+    }
+
+    @Bean
+    public ItemWriter<AbsensiBulanan> itemWriterAbsensiBulanan() {
+        return new JdbcBatchItemWriterBuilder<AbsensiBulanan>()
+                .dataSource(Objects.requireNonNull(transactionManager.getDataSource()))
+                .sql(INSERT_ABSENSI_BULANAN_SQL)
+                .itemPreparedStatementSetter(new AbsensiBulananPreparedStatementSetter())
+                .build();
+    }
+
+    //step 2 ended here
+    //step 3 start here to read table absensi_bulanan and table karyawan and write to Abensi Output CSV
+    //uncomment @Bean jika mau test. jika mau hit pakai rest api, comment @Bean agar tidak jalan otomatis
+//    @Bean
     public Step masterCreateOutputCSVAbsensi() throws Exception {
         return new StepBuilder("masterCreateOutputCSVAbsensi", jobRepository)
                 .partitioner("partitionerOutputCSVAbsensi", partitionerAbsensiOutputCSV())
