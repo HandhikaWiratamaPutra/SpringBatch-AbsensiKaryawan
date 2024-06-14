@@ -37,7 +37,7 @@ class BatchConfigurationTest {
     }
 
     @Test
-    void masterCreateOutputCSVAbsensi() throws Exception {
+    void stepReadInputAbsensiCSVToDbAbsensiHarian() {
         //pastikan @Bean di job tidak di comment
         Long currentMilis = System.currentTimeMillis();
         JobParameters jobParameters = new JobParametersBuilder()
@@ -45,22 +45,7 @@ class BatchConfigurationTest {
                 .toJobParameters();
 
         //when Launch the job
-        jobExecution = jobLauncherTestUtils.launchStep("masterCreateOutputCSVAbsensi", jobParameters);
-
-        //then
-        Assertions.assertEquals(ExitStatus.COMPLETED, jobExecution.getExitStatus());
-    }
-
-    @Test
-    void step1() {
-        //pastikan @Bean di job tidak di comment
-        Long currentMilis = System.currentTimeMillis();
-        JobParameters jobParameters = new JobParametersBuilder()
-                .addLong("time - testing", currentMilis)
-                .toJobParameters();
-
-        //when Launch the job
-        jobExecution = jobLauncherTestUtils.launchStep("step1", jobParameters);
+        jobExecution = jobLauncherTestUtils.launchStep("stepReadInputAbsensiCSVToDbAbsensiHarian", jobParameters);
 
         //then
         Assertions.assertEquals(ExitStatus.COMPLETED, jobExecution.getExitStatus());
@@ -76,6 +61,21 @@ class BatchConfigurationTest {
 
         //when Launch the job
         jobExecution = jobLauncherTestUtils.launchStep("stepAbsensiHarianToBulanan", jobParameters);
+
+        //then
+        Assertions.assertEquals(ExitStatus.COMPLETED, jobExecution.getExitStatus());
+    }
+
+    @Test
+    void masterCreateOutputCSVAbsensi() throws Exception {
+        //pastikan @Bean di job tidak di comment
+        Long currentMilis = System.currentTimeMillis();
+        JobParameters jobParameters = new JobParametersBuilder()
+                .addLong("time - testing", currentMilis)
+                .toJobParameters();
+
+        //when Launch the job
+        jobExecution = jobLauncherTestUtils.launchStep("masterCreateOutputCSVAbsensi", jobParameters);
 
         //then
         Assertions.assertEquals(ExitStatus.COMPLETED, jobExecution.getExitStatus());

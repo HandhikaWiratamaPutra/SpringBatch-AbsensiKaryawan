@@ -108,7 +108,7 @@ public class BatchConfiguration {
 //    @Bean
     public Job jobStart() throws Exception {
         return new JobBuilder("jobPengolahanAbsensiKaryawan", jobRepository)
-                .start(step1())
+                .start(stepReadInputAbsensiCSVToDbAbsensiHarian())
                 .next(stepAbsensiHarianToBulanan())
                 .next(masterCreateOutputCSVAbsensi())
                 .build();
@@ -117,8 +117,8 @@ public class BatchConfiguration {
     //step 1 start here to read CSV and write to db absensi harian
     //uncomment @Bean jika mau test. jika mau hit pakai rest api, comment @Bean agar tidak jalan otomatis
 //    @Bean
-    public Step step1() throws Exception {
-        return new StepBuilder("step1", jobRepository)
+    public Step stepReadInputAbsensiCSVToDbAbsensiHarian() throws Exception {
+        return new StepBuilder("stepReadInputAbsensiCSVToDbAbsensiHarian", jobRepository)
                 .<AbsensiHarian, AbsensiHarian>chunk(3, transactionManager)
                 .reader(itemReader())
                 .writer(itemWriter()).build();
