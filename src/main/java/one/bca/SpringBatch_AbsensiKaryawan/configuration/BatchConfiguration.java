@@ -2,11 +2,9 @@ package one.bca.SpringBatch_AbsensiKaryawan.configuration;
 
 import one.bca.SpringBatch_AbsensiKaryawan.listener.CustomCreateOutputCSVSkipListener;
 import one.bca.SpringBatch_AbsensiKaryawan.mapper.AbsensiHarianMapper;
-import one.bca.SpringBatch_AbsensiKaryawan.mapper.ReaderAbsensiOutputRowMapper;
+import one.bca.SpringBatch_AbsensiKaryawan.mapper.ReaderHasilAbsensiInputRowMapper;
 import one.bca.SpringBatch_AbsensiKaryawan.mapper.ReaderBahanAbsensiBulananRowMapper;
-import one.bca.SpringBatch_AbsensiKaryawan.model.AbsensiBulanan;
-import one.bca.SpringBatch_AbsensiKaryawan.model.AbsensiHarian;
-import one.bca.SpringBatch_AbsensiKaryawan.model.AbsensiOutputCSV;
+import one.bca.SpringBatch_AbsensiKaryawan.model.*;
 import one.bca.SpringBatch_AbsensiKaryawan.partitionoer.PartitionerAbsensiOutput;
 import one.bca.SpringBatch_AbsensiKaryawan.preparedstatement.AbsensiBulananPreparedStatementSetter;
 import one.bca.SpringBatch_AbsensiKaryawan.preparedstatement.AbsensiHarianPreparedStatementSetter;
@@ -20,10 +18,7 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.scope.context.StepContext;
 import org.springframework.batch.core.scope.context.StepSynchronizationManager;
 import org.springframework.batch.core.step.builder.StepBuilder;
-import org.springframework.batch.item.ExecutionContext;
-import org.springframework.batch.item.ItemProcessor;
-import org.springframework.batch.item.ItemReader;
-import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.*;
 import org.springframework.batch.item.database.*;
 import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
@@ -42,6 +37,7 @@ import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 import java.sql.Date;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -119,7 +115,8 @@ public class BatchConfiguration {
         return new StepBuilder("stepReadInputAbsensiCSVToDbAbsensiHarian", jobRepository)
                 .<AbsensiHarian, AbsensiHarian>chunk(3, transactionManager)
                 .reader(itemReader())
-                .writer(itemWriter()).build();
+                .writer(itemWriter())
+                .build();
     }
 
     @Bean
@@ -234,24 +231,61 @@ public class BatchConfiguration {
 
     public Step stepCreateOutputCSVAbsensi() throws Exception {
         return new StepBuilder("stepCreateOutputCSVAbsensi", jobRepository)
-                .<AbsensiOutputCSV, AbsensiOutputCSV>chunk(2, transactionManager)
+                .<HasilAbsensiInput, HasilAbsensiOutput>chunk(2, transactionManager)
                 .reader(readBahanAbsensiOutputCSV())
-                .processor(new ItemProcessor<AbsensiOutputCSV, AbsensiOutputCSV>() {
+                .processor(new ItemProcessor<HasilAbsensiInput, HasilAbsensiOutput>() {
                     @Override
-                    public AbsensiOutputCSV process(AbsensiOutputCSV absensiOutputCSV) throws Exception {
+                    public HasilAbsensiOutput process(HasilAbsensiInput hasilAbsensiInput) throws Exception {
+                        HasilAbsensiOutput hasilAbsensiOutput = new HasilAbsensiOutput();
 
-//                        System.out.println("absensiOutputCSV : " + absensiOutputCSV.toString());
-                        if (absensiOutputCSV.getKaryawanId().equals(4L) ||
-                                absensiOutputCSV.getKaryawanId().equals(1L) ||
-                                absensiOutputCSV.getKaryawanId().equals(6L) ||
-                                absensiOutputCSV.getKaryawanId().equals(8L)) {
+                        hasilAbsensiOutput.setKaryawanId(hasilAbsensiInput.getKaryawanId());
+                        hasilAbsensiOutput.setNamaDepan(hasilAbsensiInput.getNamaDepan());
+                        hasilAbsensiOutput.setNamaBelakang(hasilAbsensiInput.getNamaBelakang());
+                        hasilAbsensiOutput.setJumlahCutiTersisa(hasilAbsensiInput.getJumlahCutiTersisa());
+                        hasilAbsensiOutput.setJumlahCutiTelahDiambil(hasilAbsensiInput.getJumlahCutiTelahDiambil());
+                        hasilAbsensiOutput.setTotalKehadiran(hasilAbsensiInput.getTotalKehadiran());
+
+                        // Mengubah nilai Duration ke String
+                        String totalDurasiLemburString = hasilAbsensiInput.getTotalDurasiLembur();
+
+                        // Mengonversi String total_durasi_lembur ke Duration total_durasi_lembur
+                        if (totalDurasiLemburString != null) {
+                            // Parsing interval ke dalam format yang sesuai
+                            String[] parts = totalDurasiLemburString.split(" ");
+                            long days = 0;
+                            long hours = 0;
+                            long minutes = 0;
+                            long seconds = 0;
+                            for (int i = 0; i < parts.length; i++) {
+                                if (parts[i].equals("days")) {
+                                    days = Long.parseLong(parts[i - 1]);
+                                } else if (parts[i].contains(":")) {
+                                    String[] timeParts = parts[i].split(":");
+                                    hours = Long.parseLong(timeParts[0]);
+                                    minutes = Long.parseLong(timeParts[1]);
+                                    seconds = Long.parseLong(timeParts[2]);
+                                }
+                            }
+                            // Menghitung total durasi dalam detik
+                            long totalSeconds = (days * 24 * 3600) + (hours * 3600) + (minutes * 60) + seconds;
+                            // Membuat objek Duration
+                            Duration totalDurasiLembur = Duration.ofSeconds(totalSeconds);
+                            hasilAbsensiOutput.setTotalDurasiLembur(totalDurasiLembur);
+                        } else {
+                            hasilAbsensiOutput.setTotalDurasiLembur(Duration.ZERO);
+                        }
+
+                        if (hasilAbsensiInput.getKaryawanId().equals(4L) ||
+                                hasilAbsensiInput.getKaryawanId().equals(1L) ||
+                                hasilAbsensiInput.getKaryawanId().equals(6L) ||
+                                hasilAbsensiInput.getKaryawanId().equals(8L)) {
                             try {
                                 throw new Exception("Pengkondisian Error di Processor");
                             } catch (Exception e) {
                                 throw new RuntimeException(e);
                             }
                         }
-                        return absensiOutputCSV;
+                        return hasilAbsensiOutput;
                     }
                 })
                 .writer(writeAbsensiOutputCSV(null))
@@ -266,11 +300,11 @@ public class BatchConfiguration {
 
     @Bean
     @StepScope
-    public JdbcPagingItemReader<AbsensiOutputCSV> readBahanAbsensiOutputCSV() throws Exception {
-        return new JdbcPagingItemReaderBuilder<AbsensiOutputCSV>()
+    public JdbcPagingItemReader<HasilAbsensiInput> readBahanAbsensiOutputCSV() throws Exception {
+        return new JdbcPagingItemReaderBuilder<HasilAbsensiInput>()
                 .dataSource(Objects.requireNonNull(transactionManager.getDataSource()))
                 .queryProvider(queryProviderOfReadBahanAbsensiOutputCSV())
-                .rowMapper(new ReaderAbsensiOutputRowMapper())
+                .rowMapper(new ReaderHasilAbsensiInputRowMapper())
                 .pageSize(2) // Set page size as needed
                 .name("pagingItemReader")
                 .build();
@@ -306,17 +340,17 @@ public class BatchConfiguration {
 
     @Bean
     @StepScope
-    public ItemWriter<AbsensiOutputCSV> writeAbsensiOutputCSV(@Value("#{stepExecutionContext['fileName']}") String fileName){
+    public ItemWriter<HasilAbsensiOutput> writeAbsensiOutputCSV(@Value("#{stepExecutionContext['fileName']}") String fileName){
 
 //        System.out.println("ItemWriter started");
 
-        FlatFileItemWriter<AbsensiOutputCSV> itemWriter = new FlatFileItemWriter<>();
+        FlatFileItemWriter<HasilAbsensiOutput> itemWriter = new FlatFileItemWriter<>();
         itemWriter.setResource(new FileSystemResource(fileName));
 
-        DelimitedLineAggregator<AbsensiOutputCSV> aggregator = new DelimitedLineAggregator<AbsensiOutputCSV>();
+        DelimitedLineAggregator<HasilAbsensiOutput> aggregator = new DelimitedLineAggregator<HasilAbsensiOutput>();
         aggregator.setDelimiter(",");
 
-        BeanWrapperFieldExtractor<AbsensiOutputCSV> fieldExtractor = new BeanWrapperFieldExtractor<AbsensiOutputCSV>();
+        BeanWrapperFieldExtractor<HasilAbsensiOutput> fieldExtractor = new BeanWrapperFieldExtractor<HasilAbsensiOutput>();
         fieldExtractor.setNames(namesofExtractorAbsensiOutputCSV);
 
         aggregator.setFieldExtractor(fieldExtractor);

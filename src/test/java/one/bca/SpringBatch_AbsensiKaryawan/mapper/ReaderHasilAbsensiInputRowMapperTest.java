@@ -1,6 +1,6 @@
 package one.bca.SpringBatch_AbsensiKaryawan.mapper;
 
-import one.bca.SpringBatch_AbsensiKaryawan.model.AbsensiOutputCSV;
+import one.bca.SpringBatch_AbsensiKaryawan.model.HasilAbsensiInput;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -9,9 +9,7 @@ import org.springframework.jdbc.core.RowMapper;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-class ReaderAbsensiOutputRowMapperTest {
+class ReaderHasilAbsensiInputRowMapperTest {
 
     @Test
     void mapRow() throws SQLException {
@@ -25,10 +23,10 @@ class ReaderAbsensiOutputRowMapperTest {
         Mockito.when(rs.getString("total_durasi_lembur")).thenReturn("1 days 01:02:03");
         Mockito.when(rs.getInt("total_kehadiran")).thenReturn(20);
 
-        RowMapper<AbsensiOutputCSV> rowMapper = new ReaderAbsensiOutputRowMapper();
+        RowMapper<HasilAbsensiInput> rowMapper = new ReaderHasilAbsensiInputRowMapper();
 
         // Act
-        AbsensiOutputCSV result = rowMapper.mapRow(rs, 1);
+        HasilAbsensiInput result = rowMapper.mapRow(rs, 1);
 
         // Assert
         Assertions.assertThat(result.getKaryawanId()).isEqualTo(1L);
@@ -36,10 +34,7 @@ class ReaderAbsensiOutputRowMapperTest {
         Assertions.assertThat(result.getNamaBelakang()).isEqualTo("Doe");
         Assertions.assertThat(result.getJumlahCutiTersisa()).isEqualTo(10);
         Assertions.assertThat(result.getJumlahCutiTelahDiambil()).isEqualTo(5);
-        Assertions.assertThat(result.getTotalDurasiLembur().toDays()).isEqualTo(1);
-        Assertions.assertThat(result.getTotalDurasiLembur().toHoursPart()).isEqualTo(1);
-        Assertions.assertThat(result.getTotalDurasiLembur().toMinutesPart()).isEqualTo(2);
-        Assertions.assertThat(result.getTotalDurasiLembur().toSecondsPart()).isEqualTo(3);
+        Assertions.assertThat(result.getTotalDurasiLembur()).isEqualTo("1 days 01:02:03");
         Assertions.assertThat(result.getTotalKehadiran()).isEqualTo(20);
     }
 }

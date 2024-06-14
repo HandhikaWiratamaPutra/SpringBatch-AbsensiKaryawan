@@ -1,31 +1,14 @@
 package one.bca.SpringBatch_AbsensiKaryawan.model;
 
-import java.io.Serializable;
-import java.time.Duration;
-
-public class AbsensiOutputCSV implements Serializable {
+public class AbsensiOutputCSV {
     Long karyawanId;
     String namaDepan;
     String namaBelakang;
     int jumlahCutiTersisa;
     int jumlahCutiTelahDiambil;
-    Duration totalDurasiLembur;
     int totalKehadiran;
 
     // Constructor, getters, setters, and toString method
-
-    @Override
-    public String toString() {
-        return "AbsensiOutputCSV{" +
-                "karyawanId=" + karyawanId +
-                ", namaDepan='" + namaDepan + '\'' +
-                ", namaBelakang='" + namaBelakang + '\'' +
-                ", jumlahCutiTersisa=" + jumlahCutiTersisa +
-                ", jumlahCutiTelahDiambil=" + jumlahCutiTelahDiambil +
-                ", totalDurasiLembur=" + totalDurasiLembur +
-                ", totalKehadiran=" + totalKehadiran +
-                '}';
-    }
 
     public Long getKaryawanId() {
         return karyawanId;
@@ -65,14 +48,6 @@ public class AbsensiOutputCSV implements Serializable {
 
     public void setJumlahCutiTelahDiambil(int jumlahCutiTelahDiambil) {
         this.jumlahCutiTelahDiambil = jumlahCutiTelahDiambil;
-    }
-
-    public Duration getTotalDurasiLembur() {
-        return totalDurasiLembur;
-    }
-
-    public void setTotalDurasiLembur(Duration totalDurasiLembur) {
-        this.totalDurasiLembur = totalDurasiLembur;
     }
 
     public int getTotalKehadiran() {
