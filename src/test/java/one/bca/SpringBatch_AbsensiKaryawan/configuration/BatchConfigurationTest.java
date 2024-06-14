@@ -39,13 +39,8 @@ class BatchConfigurationTest {
     @Test
     void stepReadInputAbsensiCSVToDbAbsensiHarian() {
         //pastikan @Bean di job tidak di comment
-        Long currentMilis = System.currentTimeMillis();
-        JobParameters jobParameters = new JobParametersBuilder()
-                .addLong("time - testing", currentMilis)
-                .toJobParameters();
-
         //when Launch the job
-        jobExecution = jobLauncherTestUtils.launchStep("stepReadInputAbsensiCSVToDbAbsensiHarian", jobParameters);
+        jobExecution = jobLauncherTestUtils.launchStep("stepReadInputAbsensiCSVToDbAbsensiHarian");
 
         //then
         Assertions.assertEquals(ExitStatus.COMPLETED, jobExecution.getExitStatus());
@@ -54,13 +49,8 @@ class BatchConfigurationTest {
     @Test
     void stepAbsensiHarianToBulanan() {
         //pastikan @Bean di job tidak di comment
-        Long currentMilis = System.currentTimeMillis();
-        JobParameters jobParameters = new JobParametersBuilder()
-                .addLong("time - testing", currentMilis)
-                .toJobParameters();
-
         //when Launch the job
-        jobExecution = jobLauncherTestUtils.launchStep("stepAbsensiHarianToBulanan", jobParameters);
+        jobExecution = jobLauncherTestUtils.launchStep("stepAbsensiHarianToBulanan");
 
         //then
         Assertions.assertEquals(ExitStatus.COMPLETED, jobExecution.getExitStatus());
@@ -69,13 +59,9 @@ class BatchConfigurationTest {
     @Test
     void masterCreateOutputCSVAbsensi() throws Exception {
         //pastikan @Bean di job tidak di comment
-        Long currentMilis = System.currentTimeMillis();
-        JobParameters jobParameters = new JobParametersBuilder()
-                .addLong("time - testing", currentMilis)
-                .toJobParameters();
 
         //when Launch the job
-        jobExecution = jobLauncherTestUtils.launchStep("masterCreateOutputCSVAbsensi", jobParameters);
+        jobExecution = jobLauncherTestUtils.launchStep("masterCreateOutputCSVAbsensi");
 
         //then
         Assertions.assertEquals(ExitStatus.COMPLETED, jobExecution.getExitStatus());
