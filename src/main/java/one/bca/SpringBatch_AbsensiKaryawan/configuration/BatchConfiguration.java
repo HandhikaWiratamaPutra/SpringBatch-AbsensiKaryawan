@@ -105,6 +105,7 @@ public class BatchConfiguration {
     }
 
     //uncomment @Bean jika mau test. jika mau hit pakai rest api, comment @Bean agar tidak jalan otomatis
+    @Bean
     public Job jobStart() throws Exception {
         return new JobBuilder("jobPengolahanAbsensiKaryawan", jobRepository)
                 .start(stepReadInputAbsensiCSVToDbAbsensiHarian())
