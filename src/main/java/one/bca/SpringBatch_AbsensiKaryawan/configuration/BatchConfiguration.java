@@ -105,7 +105,7 @@ public class BatchConfiguration {
     }
 
     //uncomment @Bean jika mau test. jika mau hit pakai rest api, comment @Bean agar tidak jalan otomatis
-//    @Bean
+delete     @Bean
     public Job jobStart() throws Exception {
         return new JobBuilder("jobPengolahanAbsensiKaryawan", jobRepository)
                 .start(stepReadInputAbsensiCSVToDbAbsensiHarian())
@@ -115,8 +115,6 @@ public class BatchConfiguration {
     }
 
     //step 1 start here to read CSV and write to db absensi harian
-    //uncomment @Bean jika mau test. jika mau hit pakai rest api, comment @Bean agar tidak jalan otomatis
-//    @Bean
     public Step stepReadInputAbsensiCSVToDbAbsensiHarian() throws Exception {
         return new StepBuilder("stepReadInputAbsensiCSVToDbAbsensiHarian", jobRepository)
                 .<AbsensiHarian, AbsensiHarian>chunk(3, transactionManager)
@@ -153,8 +151,6 @@ public class BatchConfiguration {
 
     //step 1 ended here
     //step 2 start here to read table absensi_harian and write to table absensi_bulanan
-    //uncomment @Bean jika mau test. jika mau hit pakai rest api, comment @Bean agar tidak jalan otomatis
-//    @Bean
     public Step stepAbsensiHarianToBulanan() throws Exception {
         return new StepBuilder("stepAbsensiHarianToBulanan", jobRepository)
                 .<AbsensiBulanan, AbsensiBulanan>chunk(7, transactionManager)
@@ -215,8 +211,6 @@ public class BatchConfiguration {
 
     //step 2 ended here
     //step 3 start here to read table absensi_bulanan and table karyawan and write to Abensi Output CSV
-    //uncomment @Bean jika mau test. jika mau hit pakai rest api, comment @Bean agar tidak jalan otomatis
-//    @Bean
     public Step masterCreateOutputCSVAbsensi() throws Exception {
         return new StepBuilder("masterCreateOutputCSVAbsensi", jobRepository)
                 .partitioner("partitionerOutputCSVAbsensi", partitionerAbsensiOutputCSV())
