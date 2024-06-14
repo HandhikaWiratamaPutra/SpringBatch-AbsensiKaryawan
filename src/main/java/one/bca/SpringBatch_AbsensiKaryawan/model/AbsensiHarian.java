@@ -11,8 +11,16 @@ public class AbsensiHarian {
     private Time waktuClockOut;
     private Time durasiLembur;
 
-    public static String[] fields() {
-        return new String[] { "absenId", "karyawanId", "tanggalAbsen", "waktuClockIn", "waktuClockOut", "durasiLembur" };
+    @Override
+    public String toString() {
+        return "AbsensiHarian{" +
+                "absenId=" + absenId +
+                ", karyawanId=" + karyawanId +
+                ", tanggalAbsen=" + tanggalAbsen +
+                ", waktuClockIn=" + waktuClockIn +
+                ", waktuClockOut=" + waktuClockOut +
+                ", durasiLembur=" + durasiLembur +
+                '}';
     }
 
     // setter getter
