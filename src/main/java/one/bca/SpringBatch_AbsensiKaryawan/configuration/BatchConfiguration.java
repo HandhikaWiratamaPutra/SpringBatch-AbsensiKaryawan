@@ -257,7 +257,7 @@ public class BatchConfiguration {
                             long minutes = 0;
                             long seconds = 0;
                             for (int i = 0; i < parts.length; i++) {
-                                if (parts[i].equals("days")) {
+                                if (parts[i].contains("day")) {
                                     days = Long.parseLong(parts[i - 1]);
                                 } else if (parts[i].contains(":")) {
                                     String[] timeParts = parts[i].split(":");
@@ -280,7 +280,7 @@ public class BatchConfiguration {
                                 hasilAbsensiInput.getKaryawanId().equals(6L) ||
                                 hasilAbsensiInput.getKaryawanId().equals(8L)) {
                             try {
-                                throw new Exception("Pengkondisian Error di Processor");
+                                throw new Exception("Pengkondisian Error di Processor step 3");
                             } catch (Exception e) {
                                 throw new RuntimeException(e);
                             }
