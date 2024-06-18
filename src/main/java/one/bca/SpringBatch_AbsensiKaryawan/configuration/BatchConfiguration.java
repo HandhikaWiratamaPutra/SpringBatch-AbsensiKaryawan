@@ -65,6 +65,8 @@ public class BatchConfiguration {
     private final JobRepository jobRepository;
     String lastMonthFirstDayString;
     Date lastMonthFirstDayDate;
+    String year;
+    String month;
 
     public BatchConfiguration(DataSourceTransactionManager transactionManager, JobRepository jobRepository) {
         this.transactionManager = transactionManager;
@@ -98,6 +100,10 @@ public class BatchConfiguration {
 
         System.out.println("Last month's first day  [dummy] : " + lastMonthFirstDayString);
         System.out.println("Last month's first date [dummy] : " + lastMonthFirstDayDate);
+        year = lastMonthFirstDayString.split("-")[0];
+        month = lastMonthFirstDayString.split("-")[1];
+        System.out.println("year                    [dummy] : " + year);
+        System.out.println("month                   [dummy] : " + month);
     }
 
     //uncomment @Bean jika mau test. jika mau hit pakai rest api, comment @Bean agar tidak jalan otomatis
@@ -175,7 +181,7 @@ public class BatchConfiguration {
 
         factory.setSelectClause("karyawan_id, COUNT(1) AS total_kehadiran, SUM(EXTRACT(EPOCH FROM durasi_lembur)) AS total_durasi_lembur ");
         factory.setFromClause("FROM absensi_harian ");
-        factory.setWhereClause("WHERE waktu_clockin IS NOT NULL AND waktu_clockout IS NOT NULL ");
+        factory.setWhereClause("WHERE waktu_clockin IS NOT NULL AND waktu_clockout IS NOT NULL AND DATE_PART('year', tanggal_absen) = " + year + " AND DATE_PART('month', tanggal_absen) = " + month);
         factory.setGroupClause("GROUP BY karyawan_id ");
 
         Map<String, Order> sortKeys = new HashMap<>();
@@ -276,8 +282,8 @@ public class BatchConfiguration {
                         }
 
                         if (hasilAbsensiInput.getKaryawanId().equals(4L) ||
-                                hasilAbsensiInput.getKaryawanId().equals(1L) ||
                                 hasilAbsensiInput.getKaryawanId().equals(6L) ||
+                                hasilAbsensiInput.getKaryawanId().equals(7L) ||
                                 hasilAbsensiInput.getKaryawanId().equals(8L)) {
                             try {
                                 throw new Exception("Pengkondisian Error di Processor step 3");
@@ -307,6 +313,7 @@ public class BatchConfiguration {
                 .rowMapper(new ReaderHasilAbsensiInputRowMapper())
                 .pageSize(2) // Set page size as needed
                 .name("pagingItemReader")
+                .saveState(false)
                 .build();
     }
 
