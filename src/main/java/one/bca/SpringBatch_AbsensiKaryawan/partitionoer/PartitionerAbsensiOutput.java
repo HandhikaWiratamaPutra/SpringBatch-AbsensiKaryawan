@@ -21,7 +21,7 @@ public class PartitionerAbsensiOutput implements Partitioner {
             ExecutionContext value = new ExecutionContext();
             value.putString("fromChar", String.valueOf((char)('A'- 1 + fromChar)));
             value.putString("toChar", String.valueOf((char)('A'- 1 + toChar)));
-            value.putString("fileName", "data/absensi_output" + i);
+            value.putString("fileName", "data/absensi_output" + i + ".csv");
             System.out.println("value partitioner ke-" + i + "= "+ value + " | fromChar = "+ fromChar + " | toChar = " + toChar);
             result.put("partition" + i, value);
             fromChar = toChar + 1;
